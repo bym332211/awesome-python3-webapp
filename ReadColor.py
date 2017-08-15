@@ -3,6 +3,7 @@
 
 from PIL import Image
 import requests
+import xml.etree.ElementTree as ET
 import os
 
 
@@ -76,20 +77,34 @@ class ReadColor():
         result = ''
 
         basePathList = os.listdir(self.baseFolder)
+        bathXml = self.baseFolder + '\\base.xml'
+        tree = ET.parse(bathXml)
+        root = tree.getroot()
+        # parser = ET.XMLParser(recover=True)
+        # ET.fromstring(xmlstring, parser=parser)
+
         for pixel in pixels:
             pic_color = im.getpixel(pixel)
             tmpMin = -1
             pixelClr = ''
-            for basePath in basePathList:
-                key = basePath
-                basePath = self.baseFolder + '\\' + basePath
-                pixelImgList = os.listdir(basePath)
-                # 循环比较base color与各像素
-                for pixeImglPath in pixelImgList:
-                    bathIm = Image.open(basePath + "\\" + os.path.basename(pixeImglPath))
-                    tmpClr, tmpMin = self.pixelColor(bathIm, pic_color, key, tmpMin)
-                    if tmpClr :
+            for color_eles in root.findall('color'):
+                key = color_eles.find('key').text
+                valueList = color_eles.find('valueList')
+                for value in valueList.findall('value'):
+                    bath_color = [int(value.find('R').text), int(value.find('G').text), int(value.find('B').text)]
+                    tmpClr, tmpMin = self.pixelColor(bath_color, pic_color, key, tmpMin)
+                    if tmpClr:
                         pixelClr = tmpClr
+            # for basePath in basePathList:
+            #     key = basePath
+            #     basePath = self.baseFolder + '\\' + basePath
+            #     pixelImgList = os.listdir(basePath)
+            #     # 循环比较base color与各像素
+            #     for pixeImglPath in pixelImgList:
+            #         bathIm = Image.open(basePath + "\\" + os.path.basename(pixeImglPath))
+            #         tmpClr, tmpMin = self.pixelColor(bathIm, pic_color, key, tmpMin)
+            #         if tmpClr :
+            #             pixelClr = tmpClr
             result += pixelClr
             try:
                 tmpCnt = self.resultSet[pixelClr]
@@ -100,8 +115,8 @@ class ReadColor():
             self.saveTmp(pic_color, i)
             i = i + 1
 
-    def pixelColor(self, bathIm, pic_color, key, tmpMin):
-        bath_color = bathIm.getpixel((1, 1))
+    def pixelColor(self, bath_color, pic_color, key, tmpMin):
+        # bath_color = bathIm.getpixel((1, 1))
         tmpDiff = self.colorDiff(pic_color, bath_color)
         if tmpMin < 0 or tmpDiff < tmpMin:
             return key, tmpDiff
@@ -121,6 +136,36 @@ class ReadColor():
     def saveTmp(self, pic_color, i):
         tmpImg = Image.new('RGB', (30, 30), pic_color)
         tmpImg.save(self.tmppath + '\\tmp_new' + str(i) + '.jpg')
+
+    def transBaseToXML(self):
+        basePathList = os.listdir(self.baseFolder)
+        string = '<colorList>\r\n'
+        for basePath in basePathList:
+            if basePath.endswith('.xml'):
+                continue
+            string += '\t<color>\r\n'
+            string += '\t\t<key>' + basePath + '</key>\r\n'
+            string += '\t\t<valueList>\r\n'
+            basePath = self.baseFolder + '\\' + basePath
+            pixelImgList = os.listdir(basePath)
+            # 循环比较base color与各像素
+            for pixeImglPath in pixelImgList:
+                bathIm = Image.open(basePath + "\\" + os.path.basename(pixeImglPath))
+                bathColor = bathIm.getpixel((1, 1))
+                string += '\t\t\t<value>\r\n'
+                string += '\t\t\t\t<R>' + str(bathColor[0]) + '</R>\r\n'
+                string += '\t\t\t\t<G>' + str(bathColor[1]) + '</G>\r\n'
+                string += '\t\t\t\t<B>' + str(bathColor[2]) + '</B>\r\n'
+                string += '\t\t\t</value>\r\n'
+            string += '\t\t</valueList>\r\n'
+            string += '\t</color>\r\n'
+        string += '</colorList>'
+        tmpFile = self.baseFolder + '\\base.xml'
+        if os.path.exists(tmpFile):
+            os.remove(tmpFile)
+        fp = open(tmpFile, 'w',encoding='UTF-8')
+        fp.write(string)
+        fp.close()
     #
     # def defColorBase(self):
     #     R = 51
@@ -143,12 +188,13 @@ class ReadColor():
     #         i = i + 1
 #
 #
-# rc = ReadColor(depth=75,showCnt=10)
+rc = ReadColor(depth=75,showCnt=10)
+rc.transBaseToXML()
 # uri = 'https://img.alicdn.com/bao/uploaded/i4/196993935/TB1DNc2OVXXXXa7aVXXXXXXXXXX_!!0-item_pic.jpg_180x180.jpg'
 # # rc = rc.readColor(uri=uri)
-# # path = 'https://img.alicdn.com/imgextra/i4/TB1bBGBQpXXXXabaFXXXXXXXXXX_!!0-item_pic.jpg_430x430q90.jpg'
-# # path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures\\tmp - 副本.jpg'
+# path = 'https://img.alicdn.com/imgextra/i4/TB1bBGBQpXXXXabaFXXXXXXXXXX_!!0-item_pic.jpg_430x430q90.jpg'
+path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures'
 # path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures\\tmp5'
-# rc.readColor(path=path)
+rc.readColor(path=path)
 
 
