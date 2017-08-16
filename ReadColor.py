@@ -143,6 +143,22 @@ class ReadColor():
         h, s, v = self.rgb2hsv(r, g, b)
         h, s, v = 228, 31 ,41
         result = ''
+        if v in range(0, 30):
+            result = '黑'
+        elif s in range(0, 30) and v in range(31, 225):
+            result = '灰'
+        elif s in range(0, 30) and v in range(226, 255):
+            result = '白'
+        elif h in range(0, 15) or h in range(346, 360):
+            if s in range(43, 255) and v in range(46, 255):
+                result = '红'
+            elif s in range(0, 43) and v in range(221, 255):
+                result = '粉'
+
+
+
+
+
         if v in range(0, 45):
             result = '黑'
         elif s in range(0, 43) and v in range(46, 220):
@@ -163,7 +179,7 @@ class ReadColor():
             if s in range(43, 255) and v in range(46, 255):
                 result = '黄'
             elif s in range(0, 43) and v in range(221, 255):
-                result = '黄'
+                    result = '黄'
         elif h in range(71, 150):
             if s in range(43, 255) and v in range(46, 255):
                 result = '绿'
