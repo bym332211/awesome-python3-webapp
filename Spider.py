@@ -47,7 +47,6 @@ class spider:
         return L
 
     def parseItem(self, itemList):
-        idx = 0
         for item in itemList:
             soup = BeautifulSoup(str(item), 'html.parser')
             L = soup.find_all('a',attrs={'class': 'item-name J_TGoldData'})
@@ -64,8 +63,8 @@ class spider:
                 if(str(L[i].text).startswith("   ")):
                     break;
                 # l_brand, l_item_info, l_price, l_color, l_saled, l_update_date
-                idx = idx + 1
-                myitem = TmallItem.MyItem(brand, L[i].text, str(int(P[i].text)), I[i], str(int(S[i].text)), idx, startTime)
+                self.idx = self.idx + 1
+                myitem = TmallItem.MyItem(brand, L[i].text, P[i].text.rstrip(), I[i], S[i].text.rstrip(), self.idx, startTime)
                 s = str("item[" + str(i) + "]:" + "name:" + L[i].text + " price:" + P[i].text + " saled:" + S[i].text + " color:" + myitem.color)
                 sql = """
                     insert into tmall.item(
@@ -86,6 +85,7 @@ class spider:
                 print(s)
 
     def start(self):
+        self.idx = 0
         for i in range(1, 6):
             print(str(i))
             url = baseUrl + '&pageNo='+str(i)

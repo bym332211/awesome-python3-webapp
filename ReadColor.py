@@ -5,7 +5,8 @@ from PIL import Image
 import requests
 import xml.etree.ElementTree as ET
 import os
-
+import colorsys
+import cv2
 
 class ReadColor():
     baseFolder = 'pictures\\base'
@@ -87,14 +88,16 @@ class ReadColor():
             pic_color = im.getpixel(pixel)
             tmpMin = -1
             pixelClr = ''
-            for color_eles in root.findall('color'):
-                key = color_eles.find('key').text
-                valueList = color_eles.find('valueList')
-                for value in valueList.findall('value'):
-                    bath_color = [int(value.find('R').text), int(value.find('G').text), int(value.find('B').text)]
-                    tmpClr, tmpMin = self.pixelColor(bath_color, pic_color, key, tmpMin)
-                    if tmpClr:
-                        pixelClr = tmpClr
+            pixelClr = self.readColorByHSV(pic_color)
+            # for color_eles in root.findall('color'):
+            #     key = color_eles.find('key').text
+            #     valueList = color_eles.find('valueList')
+            #     for value in valueList.findall('value'):
+            #         bath_color = [int(value.find('R').text), int(value.find('G').text), int(value.find('B').text)]
+            #         tmpClr, tmpMin = self.pixelColor(bath_color, pic_color, key, tmpMin)
+            #         if tmpClr:
+            #             pixelClr = tmpClr
+
             # for basePath in basePathList:
             #     key = basePath
             #     basePath = self.baseFolder + '\\' + basePath
@@ -132,6 +135,98 @@ class ReadColor():
         B = baseColor[2]
         diff = (r - R) * (r - R) + (g - G) * (g - G) + (b - B) * (b - B)
         return diff
+
+    def readColorByHSV(self, picColor):
+        r = picColor[0]
+        g = picColor[1]
+        b = picColor[2]
+        h, s, v = self.rgb2hsv(r, g, b)
+        h, s, v = 228, 31 ,41
+        result = ''
+        if v in range(0, 45):
+            result = '黑'
+        elif s in range(0, 43) and v in range(46, 220):
+            result = '灰'
+        elif s in range(0, 30) and v in range(221, 255):
+            result = '白'
+        elif h in range(0, 20) or h in range(310, 360):
+            if s in range(43, 255) and v in range(46, 255):
+                result = '红'
+            elif s in range(0, 43) and v in range(221, 255):
+                result = '粉'
+        elif h in range(21, 50):
+            if s in range(43, 255) and v in range(46, 255):
+                result = '橙'
+            elif s in range(0, 43) and v in range(221, 255):
+                result = '橙'
+        elif h in range(51, 70):
+            if s in range(43, 255) and v in range(46, 255):
+                result = '黄'
+            elif s in range(0, 43) and v in range(221, 255):
+                result = '黄'
+        elif h in range(71, 150):
+            if s in range(43, 255) and v in range(46, 255):
+                result = '绿'
+            elif s in range(0, 43) and v in range(221, 255):
+                result = '绿'
+        elif h in range(151, 200):
+            if s in range(43, 255) and v in range(46, 255):
+                result = '青'
+            elif s in range(0, 43) and v in range(221, 255):
+                result = '青'
+        elif h in range(201, 250):
+            if s in range(43, 255) and v in range(46, 255):
+                result = '蓝'
+            elif s in range(0, 43) and v in range(221, 255):
+                result = '蓝'
+        elif h in range(251, 309):
+            if s in range(43, 255) and v in range(46, 255):
+                result = '紫'
+            elif s in range(0, 43) and v in range(221, 255):
+                result = '紫'
+
+        print('hsv:', result)
+
+        # if h in range(0, 30) or h in range(331, 359):
+        #     result = '红'
+        # elif h in range(31, 90):
+        #     result = '黄'
+        # elif h in range(91, 150):
+        #     result = '绿'
+        # elif h in range(151, 210):
+        #     result = '青'
+        # elif h in range(211, 270):
+        #     result = '蓝'
+        # elif h in range(271, 330):
+        #     result = '紫'
+        return result
+
+    def rgb2hsv2(self, image = ''):
+
+            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            print(hsv)
+    def rgb2hsv(self, r, g, b):
+        r, g, b = r / 255.0, g / 255.0, b / 255.0
+        mx = max(r, g, b)
+        mn = min(r, g, b)
+        df = mx - mn
+        if mx == mn:
+            h = 0
+        elif mx == r:
+            h = (60 * ((g - b) / df) + 360) % 360
+        elif mx == g:
+            h = (60 * ((b - r) / df) + 120) % 360
+        elif mx == b:
+            h = (60 * ((r - g) / df) + 240) % 360
+        if mx == 0:
+            s = 0
+        else:
+            s = df / mx
+        v = mx * 255
+        s = s * 255
+        # h, s, v = colorsys.rgb_to_hsv(r/255, g/255, b/255)
+        print( round(h), round(s), round(v))
+        return round(h), round(s), round(v)
 
     def saveTmp(self, pic_color, i):
         tmpImg = Image.new('RGB', (30, 30), pic_color)
@@ -188,13 +283,17 @@ class ReadColor():
     #         i = i + 1
 #
 #
-# rc = ReadColor(depth=75,showCnt=10)
+# rc = ReadColor(depth=75,showCnt=100)
 # rc.transBaseToXML()
 # # uri = 'https://img.alicdn.com/bao/uploaded/i4/196993935/TB1DNc2OVXXXXa7aVXXXXXXXXXX_!!0-item_pic.jpg_180x180.jpg'
 # # # rc = rc.readColor(uri=uri)
 # # path = 'https://img.alicdn.com/imgextra/i4/TB1bBGBQpXXXXabaFXXXXXXXXXX_!!0-item_pic.jpg_430x430q90.jpg'
 # path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures'
-# # path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures\\tmp5'
 # rc.readColor(path=path)
+#
+# path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures'
+# rc.readColor(path=path)
+# image =cv2.imread(path)
+# rc.rgb2hsv2(image)
 
 
