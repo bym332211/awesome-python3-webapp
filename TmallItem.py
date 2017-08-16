@@ -36,7 +36,7 @@ class MyItem:
         # src = imgTagHtml[start:end]
         # print(imgTagHtml[int(tmp[0]):int(tmp[1])])
         uri = "http://" + imgTagHtml[int(tmp[0]):int(tmp[1])]
-        tmppath = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures\\tmp' + str(self.index)
+        tmppath = './pictures\\tmp' + str(self.index)
         if not os.path.exists(tmppath):
             os.mkdir(tmppath)
         # tmppath = tmppath + '\\tmp.jpg'

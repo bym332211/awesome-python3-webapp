@@ -188,13 +188,13 @@ class ReadColor():
     #         i = i + 1
 #
 #
-rc = ReadColor(depth=75,showCnt=10)
-rc.transBaseToXML()
-# uri = 'https://img.alicdn.com/bao/uploaded/i4/196993935/TB1DNc2OVXXXXa7aVXXXXXXXXXX_!!0-item_pic.jpg_180x180.jpg'
-# # rc = rc.readColor(uri=uri)
-# path = 'https://img.alicdn.com/imgextra/i4/TB1bBGBQpXXXXabaFXXXXXXXXXX_!!0-item_pic.jpg_430x430q90.jpg'
-path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures'
-# path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures\\tmp5'
-rc.readColor(path=path)
+# rc = ReadColor(depth=75,showCnt=10)
+# rc.transBaseToXML()
+# # uri = 'https://img.alicdn.com/bao/uploaded/i4/196993935/TB1DNc2OVXXXXa7aVXXXXXXXXXX_!!0-item_pic.jpg_180x180.jpg'
+# # # rc = rc.readColor(uri=uri)
+# # path = 'https://img.alicdn.com/imgextra/i4/TB1bBGBQpXXXXabaFXXXXXXXXXX_!!0-item_pic.jpg_430x430q90.jpg'
+# path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures'
+# # path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures\\tmp5'
+# rc.readColor(path=path)
 
 

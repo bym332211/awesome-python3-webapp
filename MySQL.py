@@ -38,7 +38,7 @@ class MyDB:
         global cursor
         try:
             # 使用 execute()  方法执行 SQL 查询
-            cursor.execute("SELECT item_name FROM item_list")
+            cursor.execute(sql)
 
             # 使用 fetchone() 方法获取单条数据.
             ret = cursor.fetchall()
