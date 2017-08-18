@@ -5,8 +5,11 @@ from PIL import Image
 import requests
 import xml.etree.ElementTree as ET
 import os
-import colorsys
+import numpy as np
+import scipy.spatial.distance
 import cv2
+from scipy.spatial import distance
+
 
 class ReadColor():
     baseFolder = 'pictures\\base'
@@ -14,13 +17,14 @@ class ReadColor():
     showCnt = 2
     # resultSet = {}
 
-    def __init__(self, depth = 0, baseFolder = '', showCnt = 0, backGround = '白'):
+    def __init__(self, depth = 0, baseFolder = '', showCnt = 0, backGround = '白', method = '0'):
         if depth:
             self.depth = depth
         if baseFolder:
             self.baseFolder = baseFolder
         if showCnt:
             self.showCnt = showCnt
+        self.method = method
         self.resultSet = {}
         self.backGround = backGround
 
@@ -50,7 +54,7 @@ class ReadColor():
                 resultStr = resultStr + resultList[i][0]
         if not resultStr and backGroundCount:
             resultStr = self.backGround
-        print(resultStr)
+        # print(resultStr)
         fp = open(self.tmppath + '\\' + resultStr + '.txt', 'w')
         fp.write('')
         return resultStr
@@ -70,12 +74,10 @@ class ReadColor():
         for x in rateList:
             for y in rateList:
                 pixels.append((width * x, hight * y))
-        # print(pixels)
-        # pixels = [(width * 0.25, hight * 0.25), (width * 0.5, hight * 0.25), (width * 0.75, hight * 0.25),
-        #           (width * 0.25, hight * 0.5), (width * 0.5, hight * 0.5), (width * 0.75, hight * 0.5),
-        #           (width * 0.25, hight * 0.75), (width * 0.5, hight * 0.75), (width * 0.75, hight * 0.75)]
         i = 0
-        result = ''
+        result0 = ''
+        result1 = ''
+        result2 = ''
 
         basePathList = os.listdir(self.baseFolder)
         bathXml = self.baseFolder + '\\base.xml'
@@ -86,18 +88,34 @@ class ReadColor():
 
         for pixel in pixels:
             pic_color = im.getpixel(pixel)
-            tmpMin = -1
-            pixelClr = ''
-            pixelClr = self.readColorByHSV(pic_color)
-            # for color_eles in root.findall('color'):
-            #     key = color_eles.find('key').text
-            #     valueList = color_eles.find('valueList')
-            #     for value in valueList.findall('value'):
-            #         bath_color = [int(value.find('R').text), int(value.find('G').text), int(value.find('B').text)]
-            #         tmpClr, tmpMin = self.pixelColor(bath_color, pic_color, key, tmpMin)
-            #         if tmpClr:
-            #             pixelClr = tmpClr
+            tmpMin0 = -1
+            tmpMin1 = -1
+            tmpMin2 = -1
+            pixelClr0 = ''
+            pixelClr1 = ''
+            pixelClr2 = ''
+            if self.method == 0: #HSV颜色空间
+                pixelClr0 = self.readColorByHSV(pic_color)
 
+            # else:
+                for color_eles in root.findall('color'):
+                    key = color_eles.find('key').text
+                    valueList = color_eles.find('valueList')
+                    bath_color_list = []
+                    for value in valueList.findall('value'):
+                        bath_color = [int(value.find('R').text), int(value.find('G').text), int(value.find('B').text)]
+                        bath_color_list.append(bath_color)
+                        tmpClr, tmpMin1 = self.pixelColor(bath_color, pic_color, key, tmpMin1)
+                        if tmpClr:
+                            pixelClr1 = tmpClr
+
+                    tmpClr2, tmpMin2 =self.colorDiffMahala(key, pic_color, bath_color_list, tmpMin2)
+                    if tmpClr2:
+                        pixelClr2 = tmpClr2
+
+            print('HSV pixelClr:', pixelClr0)
+            print('欧氏 pixelClr:', pixelClr1)
+            print('马氏 pixelClr:', pixelClr2)
             # for basePath in basePathList:
             #     key = basePath
             #     basePath = self.baseFolder + '\\' + basePath
@@ -108,57 +126,60 @@ class ReadColor():
             #         tmpClr, tmpMin = self.pixelColor(bathIm, pic_color, key, tmpMin)
             #         if tmpClr :
             #             pixelClr = tmpClr
-            result += pixelClr
+            result0 += pixelClr0
+            result1 += pixelClr1
+            result2 += pixelClr2
             try:
-                tmpCnt = self.resultSet[pixelClr]
+                tmpCnt = self.resultSet[pixelClr0]
             except KeyError:
                 tmpCnt = 0
             tmpCnt = tmpCnt + 1
-            self.resultSet[pixelClr] = tmpCnt
+            self.resultSet[pixelClr0] = tmpCnt
             self.saveTmp(pic_color, i)
             i = i + 1
 
     def pixelColor(self, bath_color, pic_color, key, tmpMin):
-        # bath_color = bathIm.getpixel((1, 1))
         tmpDiff = self.colorDiff(pic_color, bath_color)
         if tmpMin < 0 or tmpDiff < tmpMin:
             return key, tmpDiff
         else:
             return '', tmpMin
 
+    def colorDiffMahala(self, key, picColor, baseColorList, tmpMin):
+        if self.method == 0:  # 马氏距离
+            X = np.vstack((picColor, np.array(baseColorList)))
+            XT = X.T
+            D = np.cov(XT)
+            invD = np.linalg.inv(D)
+            tp = X[0] - X[1]
+            diff = np.sqrt(np.dot(np.dot(tp, invD), tp.T))
+            if tmpMin < 0 or diff < tmpMin:
+                return key, diff
+            else:
+                return '', tmpMin
+
     def colorDiff(self, picColor, baseColor):
-        r = picColor[0]
-        g = picColor[1]
-        b = picColor[2]
-        R = baseColor[0]
-        G = baseColor[1]
-        B = baseColor[2]
-        diff = (r - R) * (r - R) + (g - G) * (g - G) + (b - B) * (b - B)
+        zero = (0, 0, 0)
+        vec1 = np.array(picColor)
+        vec2 = np.array(baseColor)
+        diff = np.linalg.norm(vec1 - vec2)
+        # if self.method == 0: # 欧氏距离
+            # X = np.vstack((picColor, baseColor))
+            # Y = distance.pdist(X, 'euclidean')
         return diff
+        # elif self.method == 2: # 向量夹角正弦
+        #     d1 = np.linalg.norm(vec1)
+        #     d2 = np.linalg.norm(vec2)
+        #     cos = (vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2])/(d1 * d2)
+        #     diff = 1 - cos
+        # return diff
 
     def readColorByHSV(self, picColor):
         r = picColor[0]
         g = picColor[1]
         b = picColor[2]
         h, s, v = self.rgb2hsv(r, g, b)
-        h, s, v = 228, 31 ,41
         result = ''
-        if v in range(0, 30):
-            result = '黑'
-        elif s in range(0, 30) and v in range(31, 225):
-            result = '灰'
-        elif s in range(0, 30) and v in range(226, 255):
-            result = '白'
-        elif h in range(0, 15) or h in range(346, 360):
-            if s in range(43, 255) and v in range(46, 255):
-                result = '红'
-            elif s in range(0, 43) and v in range(221, 255):
-                result = '粉'
-
-
-
-
-
         if v in range(0, 45):
             result = '黑'
         elif s in range(0, 43) and v in range(46, 220):
@@ -201,26 +222,11 @@ class ReadColor():
             elif s in range(0, 43) and v in range(221, 255):
                 result = '紫'
 
-        print('hsv:', result)
-
-        # if h in range(0, 30) or h in range(331, 359):
-        #     result = '红'
-        # elif h in range(31, 90):
-        #     result = '黄'
-        # elif h in range(91, 150):
-        #     result = '绿'
-        # elif h in range(151, 210):
-        #     result = '青'
-        # elif h in range(211, 270):
-        #     result = '蓝'
-        # elif h in range(271, 330):
-        #     result = '紫'
         return result
 
     def rgb2hsv2(self, image = ''):
-
             hsv = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            print(hsv)
+
     def rgb2hsv(self, r, g, b):
         r, g, b = r / 255.0, g / 255.0, b / 255.0
         mx = max(r, g, b)
@@ -241,7 +247,6 @@ class ReadColor():
         v = mx * 255
         s = s * 255
         # h, s, v = colorsys.rgb_to_hsv(r/255, g/255, b/255)
-        print( round(h), round(s), round(v))
         return round(h), round(s), round(v)
 
     def saveTmp(self, pic_color, i):
@@ -299,7 +304,7 @@ class ReadColor():
     #         i = i + 1
 #
 #
-# rc = ReadColor(depth=75,showCnt=100)
+rc = ReadColor(depth=75,showCnt=100,method=0)
 # rc.transBaseToXML()
 # # uri = 'https://img.alicdn.com/bao/uploaded/i4/196993935/TB1DNc2OVXXXXa7aVXXXXXXXXXX_!!0-item_pic.jpg_180x180.jpg'
 # # # rc = rc.readColor(uri=uri)
@@ -307,8 +312,8 @@ class ReadColor():
 # path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures'
 # rc.readColor(path=path)
 #
-# path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures'
-# rc.readColor(path=path)
+path = 'D:\\WorkSpace_Python\\awesome-python3-webapp\\pictures'
+rc.readColor(path=path)
 # image =cv2.imread(path)
 # rc.rgb2hsv2(image)
 
