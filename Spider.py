@@ -54,6 +54,13 @@ class spider:
             S = soup.find_all('span', attrs={'class': 'sale-num'})
             # 获取图片
             I = []
+            Comments = soup.find_all('span')
+            for span in Comments:
+                span_txt = span.text
+                if span_txt.startswith("评价"):
+                    href = span.parent
+                    uri = "https：" + href.get('href')
+                    pass
             for j in range(0,5):
                 tmp = str(L[j].text).rstrip()
                 img = soup.find_all('img', attrs={'alt': tmp})
@@ -83,6 +90,8 @@ class spider:
                 db.insert(sql)
                 i = i + 1
                 print(s)
+
+
 
     def start(self):
         self.idx = 0

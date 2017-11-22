@@ -75,9 +75,7 @@ class ReadColor():
             for y in rateList:
                 pixels.append((width * x, hight * y))
         i = 0
-        result0 = ''
-        result1 = ''
-        result2 = ''
+        result = ''
 
         basePathList = os.listdir(self.baseFolder)
         bathXml = self.baseFolder + '\\base.xml'
@@ -88,16 +86,11 @@ class ReadColor():
 
         for pixel in pixels:
             pic_color = im.getpixel(pixel)
-            tmpMin0 = -1
-            tmpMin1 = -1
-            tmpMin2 = -1
-            pixelClr0 = ''
-            pixelClr1 = ''
-            pixelClr2 = ''
-            if self.method == 0: #HSV颜色空间
-                pixelClr0 = self.readColorByHSV(pic_color)
-
-            # else:
+            tmpMin = -1
+            pixelClr = ''
+            if self.method == 0: # HSV颜色空间
+                pixelClr = self.readColorByHSV(pic_color)
+            else:
                 for color_eles in root.findall('color'):
                     key = color_eles.find('key').text
                     valueList = color_eles.find('valueList')
@@ -105,17 +98,16 @@ class ReadColor():
                     for value in valueList.findall('value'):
                         bath_color = [int(value.find('R').text), int(value.find('G').text), int(value.find('B').text)]
                         bath_color_list.append(bath_color)
-                        tmpClr, tmpMin1 = self.pixelColor(bath_color, pic_color, key, tmpMin1)
+                        if self.method == 1:# 欧氏距离
+                            tmpClr, tmpMin = self.pixelColor(bath_color, pic_color, key, tmpMin)
+                            if tmpClr:
+                                pixelClr = tmpClr
+                    if self.method == 2:# 马氏距离
+                        tmpClr, tmpMin =self.colorDiffMahala(key, pic_color, bath_color_list, tmpMin)
                         if tmpClr:
-                            pixelClr1 = tmpClr
+                            pixelClr = tmpClr
 
-                    tmpClr2, tmpMin2 =self.colorDiffMahala(key, pic_color, bath_color_list, tmpMin2)
-                    if tmpClr2:
-                        pixelClr2 = tmpClr2
-
-            print('HSV pixelClr:', pixelClr0)
-            print('欧氏 pixelClr:', pixelClr1)
-            print('马氏 pixelClr:', pixelClr2)
+            print(self.method, ' pixelClr:', pixelClr)
             # for basePath in basePathList:
             #     key = basePath
             #     basePath = self.baseFolder + '\\' + basePath
@@ -126,16 +118,21 @@ class ReadColor():
             #         tmpClr, tmpMin = self.pixelColor(bathIm, pic_color, key, tmpMin)
             #         if tmpClr :
             #             pixelClr = tmpClr
-            result0 += pixelClr0
-            result1 += pixelClr1
-            result2 += pixelClr2
+            result += pixelClr
             try:
-                tmpCnt = self.resultSet[pixelClr0]
+                tmpCnt = self.resultSet[pixelClr]
             except KeyError:
                 tmpCnt = 0
             tmpCnt = tmpCnt + 1
-            self.resultSet[pixelClr0] = tmpCnt
-            self.saveTmp(pic_color, i)
+            self.resultSet[pixelClr] = tmpCnt
+            if self.method == 0:
+                pre = 'HSV'
+            elif self.method == 1:
+                pre = '欧氏'
+            elif self.method == 2:
+                pre = '马氏'
+            pre += pixelClr
+            self.saveTmp(pre, pic_color, i)
             i = i + 1
 
     def pixelColor(self, bath_color, pic_color, key, tmpMin):
@@ -146,17 +143,16 @@ class ReadColor():
             return '', tmpMin
 
     def colorDiffMahala(self, key, picColor, baseColorList, tmpMin):
-        if self.method == 0:  # 马氏距离
-            X = np.vstack((picColor, np.array(baseColorList)))
-            XT = X.T
-            D = np.cov(XT)
-            invD = np.linalg.inv(D)
-            tp = X[0] - X[1]
-            diff = np.sqrt(np.dot(np.dot(tp, invD), tp.T))
-            if tmpMin < 0 or diff < tmpMin:
-                return key, diff
-            else:
-                return '', tmpMin
+        X = np.vstack((picColor, np.array(baseColorList)))
+        XT = X.T
+        D = np.cov(XT)
+        invD = np.linalg.inv(D)
+        tp = X[0] - X[1]
+        diff = np.sqrt(np.dot(np.dot(tp, invD), tp.T))
+        if tmpMin < 0 or diff < tmpMin:
+            return key, diff
+        else:
+            return '', tmpMin
 
     def colorDiff(self, picColor, baseColor):
         zero = (0, 0, 0)
@@ -164,15 +160,15 @@ class ReadColor():
         vec2 = np.array(baseColor)
         diff = np.linalg.norm(vec1 - vec2)
         # if self.method == 0: # 欧氏距离
-            # X = np.vstack((picColor, baseColor))
-            # Y = distance.pdist(X, 'euclidean')
-        return diff
+        #     # X = np.vstack((picColor, baseColor))
+        #     # Y = distance.pdist(X, 'euclidean')
+        #     return diff
         # elif self.method == 2: # 向量夹角正弦
         #     d1 = np.linalg.norm(vec1)
         #     d2 = np.linalg.norm(vec2)
         #     cos = (vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2])/(d1 * d2)
         #     diff = 1 - cos
-        # return diff
+        return diff
 
     def readColorByHSV(self, picColor):
         r = picColor[0]
@@ -249,9 +245,9 @@ class ReadColor():
         # h, s, v = colorsys.rgb_to_hsv(r/255, g/255, b/255)
         return round(h), round(s), round(v)
 
-    def saveTmp(self, pic_color, i):
+    def saveTmp(self, pre, pic_color, i):
         tmpImg = Image.new('RGB', (30, 30), pic_color)
-        tmpImg.save(self.tmppath + '\\tmp_new' + str(i) + '.jpg')
+        tmpImg.save(self.tmppath + '\\tmp_new' + pre + str(i) + '.jpg')
 
     def transBaseToXML(self):
         basePathList = os.listdir(self.baseFolder)
@@ -265,14 +261,22 @@ class ReadColor():
             basePath = self.baseFolder + '\\' + basePath
             pixelImgList = os.listdir(basePath)
             # 循环比较base color与各像素
+            tmpSet = {}
             for pixeImglPath in pixelImgList:
                 bathIm = Image.open(basePath + "\\" + os.path.basename(pixeImglPath))
                 bathColor = bathIm.getpixel((1, 1))
-                string += '\t\t\t<value>\r\n'
-                string += '\t\t\t\t<R>' + str(bathColor[0]) + '</R>\r\n'
-                string += '\t\t\t\t<G>' + str(bathColor[1]) + '</G>\r\n'
-                string += '\t\t\t\t<B>' + str(bathColor[2]) + '</B>\r\n'
-                string += '\t\t\t</value>\r\n'
+                tmpkey = str(bathColor[0])+ '_' +str(bathColor[1])+ '_' +str(bathColor[2])
+                try:
+                    val = tmpSet[tmpkey]
+                except KeyError:
+                    val = ''
+                if not val:
+                    string += '\t\t\t<value>\r\n'
+                    string += '\t\t\t\t<R>' + str(bathColor[0]) + '</R>\r\n'
+                    string += '\t\t\t\t<G>' + str(bathColor[1]) + '</G>\r\n'
+                    string += '\t\t\t\t<B>' + str(bathColor[2]) + '</B>\r\n'
+                    string += '\t\t\t</value>\r\n'
+                    tmpSet[tmpkey] = 'tmp'
             string += '\t\t</valueList>\r\n'
             string += '\t</color>\r\n'
         string += '</colorList>'
@@ -304,8 +308,8 @@ class ReadColor():
     #         i = i + 1
 #
 #
-rc = ReadColor(depth=75,showCnt=100,method=0)
-# rc.transBaseToXML()
+rc = ReadColor(depth=10,showCnt=100,method=2)
+rc.transBaseToXML()
 # # uri = 'https://img.alicdn.com/bao/uploaded/i4/196993935/TB1DNc2OVXXXXa7aVXXXXXXXXXX_!!0-item_pic.jpg_180x180.jpg'
 # # # rc = rc.readColor(uri=uri)
 # # path = 'https://img.alicdn.com/imgextra/i4/TB1bBGBQpXXXXabaFXXXXXXXXXX_!!0-item_pic.jpg_430x430q90.jpg'

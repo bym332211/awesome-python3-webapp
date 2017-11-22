@@ -48,11 +48,6 @@
 				<B>153</B>
 			</value>
 			<value>
-				<R>205</R>
-				<G>203</G>
-				<B>152</B>
-			</value>
-			<value>
 				<R>204</R>
 				<G>204</G>
 				<B>204</B>
@@ -112,15 +107,50 @@
 				<G>131</G>
 				<B>126</B>
 			</value>
+			<value>
+				<R>85</R>
+				<G>91</G>
+				<B>91</B>
+			</value>
 		</valueList>
 	</color>
 	<color>
 		<key>白</key>
 		<valueList>
 			<value>
+				<R>254</R>
+				<G>250</G>
+				<B>249</B>
+			</value>
+			<value>
 				<R>255</R>
 				<G>255</G>
 				<B>255</B>
+			</value>
+			<value>
+				<R>245</R>
+				<G>245</G>
+				<B>245</B>
+			</value>
+			<value>
+				<R>255</R>
+				<G>248</G>
+				<B>240</B>
+			</value>
+			<value>
+				<R>254</R>
+				<G>245</G>
+				<B>229</B>
+			</value>
+			<value>
+				<R>250</R>
+				<G>240</G>
+				<B>230</B>
+			</value>
+			<value>
+				<R>255</R>
+				<G>255</G>
+				<B>253</B>
 			</value>
 		</valueList>
 	</color>
@@ -1112,6 +1142,11 @@
 	<color>
 		<key>金</key>
 		<valueList>
+			<value>
+				<R>250</R>
+				<G>234</G>
+				<B>218</B>
+			</value>
 			<value>
 				<R>244</R>
 				<G>224</G>

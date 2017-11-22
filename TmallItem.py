@@ -41,8 +41,17 @@ class MyItem:
             os.mkdir(tmppath)
         # tmppath = tmppath + '\\tmp.jpg'
         self.saveImg(uri, tmppath)
-        readColor = ReadColor.ReadColor()
+        readColor = ReadColor.ReadColor(method=0)
         color = readColor.readColor(path=tmppath)
+        print('0',color)
+
+        readColor = ReadColor.ReadColor(method=1)
+        color = readColor.readColor(path=tmppath)
+        print('1',color)
+
+        readColor = ReadColor.ReadColor(method=2)
+        color = readColor.readColor(path=tmppath)
+        print('2',color)
         return color
 
     def saveImg(self, uri, tmppath):
